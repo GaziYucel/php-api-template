@@ -1,0 +1,10 @@
+<?php
+/**
+ * Remove these display errors lines in production.
+ */
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
+require_once('App/Router.php');
+new Router();
