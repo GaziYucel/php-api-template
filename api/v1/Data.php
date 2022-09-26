@@ -240,8 +240,11 @@ class Data extends Endpoint
     {
         $result = [];
 
-        foreach ($this->schema as $key => $value)
+        foreach ($this->schema as $key => $value) {
             $result[$key] = $row[$key];
+            if ($key === $this->schemaKey)
+                $result[$key] = (int)$result[$key];
+        }
 
         return $result;
     }
