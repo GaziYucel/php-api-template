@@ -54,18 +54,18 @@ abstract class Api
 
     function __construct()
     {
-        $request = explode('/', trim($_REQUEST[QUERY_KEY], "/"));
+        $requestUri = explode('/', trim($_REQUEST[QUERY_KEY], "/"));
 
         // set endpoint
-        $this->endpoint = array_shift($request);
+        $this->endpoint = array_shift($requestUri);
         $this->endpoint = ucfirst(strtolower($this->endpoint));
 
         // set action if any
-        if (array_key_exists(0, $request) && !is_numeric($request[0]))
-            $this->action = array_shift($request);
+        if (array_key_exists(0, $requestUri) && !is_numeric($requestUri[0]))
+            $this->action = array_shift($requestUri);
 
         // set identifiers
-        $this->identifiers = array_unique($request);
+        $this->identifiers = array_unique($requestUri);
 
         // set method
         $this->method = $_SERVER['REQUEST_METHOD'];
