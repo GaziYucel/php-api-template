@@ -1,77 +1,110 @@
 <?php
 /**
  * This class contains the router logic.
- *
- * Require this file in index.php and create a new Router instance,
- * e.g. require_once('App/Router.php'); new Router();
- *
- * The endpoints are defined as follows:
- * + put the endpoint files in the same directory as index.php
- * + file name starts with an upper case, e.g. Data.php
- * + class name has the same name as the file, e.g. class Data
  */
-require_once('Api.php');
-require_once('Auth.php');
 
-class Router extends Api
+namespace REPA\App;
+
+use ReflectionMethod;
+
+class Router
 {
     function __construct()
     {
-        // if request not found in URI, response with syntax
-        if (empty($_REQUEST[QUERY_KEY]))
-            $this->response(['Syntax: ' . SYNTAX]);
+        // if path not found in query string, response with syntax
+        if (empty($_REQUEST[PATH_KEY])) $this->response(['Syntax: ' . SYNTAX], 200);
 
         // check if authenticated
         $auth = new Auth();
-        if (!$auth->isAuthenticated())
-            $this->response(['Unauthorised'], 401);
+        if (!$auth->isAuthenticated()) $this->response(['Unauthorised'], 401);
 
-        // execute parent __construct
-        parent::__construct();
+        // get value of path in query string
+        $query = explode('/', trim($_REQUEST[PATH_KEY], "/"));
 
-        // check if method allowed
-        if (!in_array($this->method, $this->methodsAllowed, true))
-            $this->response(["Method [$this->method] not found"], 405);
+        // get endpoint name
+        $endpointName = ucfirst(strtolower(array_shift($query)));
 
-        // check if endpoint in excluded endpoints
-        if (key_exists(
-            strtolower($this->endpoint),
-            array_change_key_case(EXCLUDED_ENDPOINTS))) {
-            $this->response(["Endpoint [$this->endpoint] not found"], 404);
-        }
+        // is endpoint allowed
+        if (stristr(' ' . EXCLUDED_ENDPOINTS . ' ', ' ' . $endpointName . ' '))
+            $this->response(["Endpoint [$endpointName] not allowed"], 405);
 
-        // look for file and execute endpoint
-        if (file_exists($this->endpoint . '.php')) {
-            require_once($this->endpoint . ".php");
-            $endpoint = new $this->endpoint();
-            $action = $endpoint->executeAction();
-            $this->response($action, $endpoint->status);
-        }
+        // does endpoint file exist
+        if (!file_exists(ENDPOINTS_DIR . '/' . $endpointName . '.php'))
+            $this->response(["Endpoint [$endpointName] not found"], 404);
 
-        // nothing found, return not found
-        $this->response(["Endpoint [$this->endpoint] not found"], 404);
+        // require endpoint class file
+        require_once(ENDPOINTS_DIR . '/' . $endpointName . ".php");
+
+        // instantiate object
+        $endpointObject = new $endpointName();
+
+        // execute action
+        $this->executeAction($endpointObject);
     }
 
     /**
-     * @desc The actual method which sends the response
-     * @param $data
+     * Execute action
+     * @param object $endpoint
+     * @return void
+     */
+    private function executeAction(object $endpoint): void
+    {
+        // action empty
+        if (empty($endpoint->action)) {
+            switch ($endpoint->method) {
+                default:
+                case 'GET':
+                    $this->response($endpoint->get(), $endpoint->status);
+                    break;
+                case 'POST':
+                    $this->response($endpoint->post(), $endpoint->status);
+                    break;
+                case 'PUT':
+                    $this->response($endpoint->put(), $endpoint->status);
+                    break;
+                case 'DELETE':
+                    $this->response($endpoint->delete(), $endpoint->status);
+                    break;
+            }
+        }
+
+        // is action allowed
+        if (stristr(' ' . EXCLUDED_ACTIONS . ' ', ' ' . $endpoint->action . ' '))
+            $this->response(["Action [$endpoint->action] not allowed"], 405);
+
+        // execute action if exists
+        if(method_exists($endpoint, $endpoint->action)){
+            $reflection = new ReflectionMethod($endpoint, $endpoint->action);
+            if ($reflection->isPublic()) {
+                $this->response($endpoint->{$endpoint->action}(), $endpoint->status);
+            }
+        }
+
+        // nothing found
+        $this->response(["Action [$endpoint->action] not found!"], 404);
+    }
+
+    /**
+     *  The method which sends the response to the client
+     * @param array|string $data
      * @param int $status
      * @return void
      */
-    protected function response($data, int $status = 200): void
+    private function response(array|string $data, int $status): void
     {
-        $httpStatusCodes = HTTP_STATUS_CODES[500];
+        $httpStatusCodes = HTTP_STATUS_CODES[200];
         if (key_exists($status, HTTP_STATUS_CODES))
             $httpStatusCodes = HTTP_STATUS_CODES[$status];
 
         header("Access-Control-Allow-Origin: *");
-        header("Access-Control-Allow-Methods: " . implode(",", $this->methodsAllowed));
+        header("Access-Control-Allow-Methods: " . implode(",", METHODS_ALLOWED));
         header("HTTP/1.1 $status $httpStatusCodes");
         header("Content-Type: application/json");
 
         if (!is_array($data)) $data = [$data];
 
         echo json_encode($data);
+
         exit;
     }
 }

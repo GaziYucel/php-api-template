@@ -2,19 +2,73 @@
 /**
  * This class contains the endpoint logic.
  */
-require_once('Api.php');
 
-class Endpoint extends Api
+namespace REPA\App;
+
+class Endpoint
 {
+    /**
+     *  HTTP Status Code
+     * @var int
+     */
+    public int $status = 200;
+
+    /**
+     *  The HTTP method
+     * @value GET, POST, PUT or DELETE
+     * @var string
+     */
+    public string $method = 'GET';
+
+    /**
+     * The request
+     * @value e.g. /demo/process/1 ; form data ; file
+     * @var array
+     */
+    public array $request = [];
+
+    /**
+     *  The action requested
+     * $value eg: action=action-name
+     * @var string
+     */
+    public string $action = '';
+
+    /**
+     *  The identifiers requested
+     * $value eg: ids=1,2,3
+     * @var int[]
+     */
+    public array $identifiers = [];
+
+    /**
+     * Dao object
+     * @var object
+     */
+    protected object $dao;
+
     function __construct()
     {
-        // execute parent __construct
-        parent::__construct();
+        // get value of path in query string
+        $query = explode('/', trim($_REQUEST[PATH_KEY], "/"));
+
+        // get rid of the first part, e.g. endpoint name
+        array_shift($query);
+
+        // set action if any
+        if(!empty($query[0]) && !is_numeric($query[0]))
+            $this->action = array_shift($query);
+
+        // set identifiers
+        $this->identifiers = array_unique($query);
+
+        // set method
+        $this->method = $_SERVER['REQUEST_METHOD'];
 
         // set request
         switch ($this->method) {
             case 'POST':
-                $this->request = $this->stripTags($_POST);
+                $this->request = $_POST;
                 break;
             case 'PUT':
                 parse_str(file_get_contents("php://input"),
@@ -23,13 +77,15 @@ class Endpoint extends Api
             default:
             case 'GET':
             case 'DELETE':
-                $this->request = $this->stripTags($_GET);
+                $this->request = $_GET;
                 break;
         }
-    }
 
+        $this->dao = new Dao(strtolower(get_class($this)));
+    }
+    
     /**
-     * @desc Triggered if no action is given and method is GET
+     *  Triggered if no action is given and method is GET
      * @return array
      */
     public function get(): array
@@ -38,7 +94,7 @@ class Endpoint extends Api
     }
 
     /**
-     * @desc Triggered if no action is given and method is POST
+     *  Triggered if no action is given and method is POST
      * @return array
      */
     public function post(): array
@@ -47,7 +103,7 @@ class Endpoint extends Api
     }
 
     /**
-     * @desc Triggered if no action is given and method is PUT
+     *  Triggered if no action is given and method is PUT
      * @return array
      */
     public function put(): array
@@ -56,72 +112,11 @@ class Endpoint extends Api
     }
 
     /**
-     * @desc Triggered if no action is given and method is DELETE
+     *  Triggered if no action is given and method is DELETE
      * @return array
      */
     public function delete(): array
     {
         return ["::delete"];
-    }
-
-    /**
-     * @desc Execute action; allowed methods: is public, not a magic method, method exists
-     * @return array
-     */
-    public function executeAction(): array
-    {
-        // return default if no action given
-        if (empty($this->action)) {
-            switch ($this->method) {
-                default:
-                case 'GET':
-                    return $this->get();
-                case 'POST':
-                    return $this->post();
-                case 'PUT':
-                    return $this->put();
-                case 'DELETE':
-                    return $this->delete();
-            }
-        }
-
-        // check if action allowed
-        if (key_exists(
-            strtolower($this->action),
-            array_change_key_case(EXCLUDED_ACTIONS, CASE_LOWER))) {
-            $this->status = 404;
-            return ["Action [$this->action] not found"];
-        }
-
-        // execute action
-        try {
-            $reflection = new ReflectionMethod($this, $this->action);
-            if ($reflection->isPublic() && method_exists($this, $this->action))
-                return $this->{$this->action}();
-        } catch (ReflectionException|Exception $ex) {
-        }
-
-        // nothing found
-        $this->status = 404;
-        return ["Action [$this->action] not found"];
-    }
-
-    /**
-     * @desc Strip tags in string and array
-     * @param $data
-     * @return array|string
-     */
-    protected function stripTags($data)
-    {
-        $result = array();
-
-        if (is_array($data))
-            foreach ($data as $key => $value)
-                $result[$key] = $this->stripTags($value);
-
-        if(!is_array($data))
-            $result = trim(strip_tags($data));
-
-        return $result;
     }
 }
