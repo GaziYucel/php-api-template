@@ -89,9 +89,8 @@
                     headers: {
                         'AuthenticationToken': this.AuthenticationToken
                     }
-                })
-                    .then((response) => response.json())
-                    .then((data) => this.rows = data);
+                }).then((response) => response.json())
+                  .then((data) => this.rows = data);
             },
             deleteRow(index) {
                 if (confirm('Are you sure you want to delete "' + this.rows[index].name + '"?')) {
@@ -100,12 +99,11 @@
                         headers: {
                             'AuthenticationToken': this.AuthenticationToken
                         }
-                    });
-                    this.getRows();
+                    }).then(() => this.getRows());
                 }
             },
             saveRow(index) {
-                if((this.rows[index].name).length > 0){
+                if ((this.rows[index].name).length > 0) {
                     if (confirm('Are you sure you want to save "' + this.rows[index].name + '"?')) {
                         fetch(this.apiUrl, {
                             method: 'PUT',
@@ -114,16 +112,14 @@
                                 'AuthenticationToken': this.AuthenticationToken
                             },
                             body: new URLSearchParams({"id": this.rows[index].id, "name": this.rows[index].name})
-                        });
-                        this.getRows();
+                        }).then(() => this.getRows());
                     }
-                }
-                else {
+                } else {
                     alert('Name is required');
                 }
             },
             addRow() {
-                if((this.newRow.name).length > 0){
+                if ((this.newRow.name).length > 0) {
                     if (confirm('Are you sure you want to add "' + this.newRow.name + '"?')) {
                         fetch(this.apiUrl, {
                             method: 'PUT',
@@ -132,12 +128,10 @@
                                 'AuthenticationToken': this.AuthenticationToken
                             },
                             body: new URLSearchParams({"id": "", "name": this.newRow.name})
-                        });
-                        this.getRows();
+                        }).then(() => this.getRows());
                         this.resetNewRow();
                     }
-                }
-                else {
+                } else {
                     alert('Name is required');
                 }
             },
@@ -153,21 +147,19 @@
                 headers: {
                     'AuthenticationToken': this.AuthenticationToken
                 }
-            })
-                .then((response) => response.json())
-                .then((data) => this.rows = data);
+            }).then((response) => response.json())
+              .then((data) => this.rows = data);
 
             fetch(this.apiUrl + '/getSchema', {
                 method: 'GET',
                 headers: {
                     'AuthenticationToken': this.AuthenticationToken
                 }
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    this.schema = data;
-                    this.resetNewRow();
-                });
+            }).then((response) => response.json())
+              .then((data) => {
+                  this.schema = data;
+                  this.resetNewRow();
+              });
         }
     }).mount('#app');
 </script>
