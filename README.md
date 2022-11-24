@@ -25,7 +25,7 @@
 
 ## Setup
 
-* Tested with PHP 8.0+
+* Tested with PHP 7.4, 8.0, 8.1
 * Download zip file and copy to the webserver
 * Add new endpoints as described below
 * Delete the example endpoint "api\v1\Endpoints\Demo.php"
