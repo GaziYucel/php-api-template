@@ -30,7 +30,7 @@
 * Add new endpoints as described below
 * Delete the example endpoint "api\v1\Endpoints\Demo.php"
 
-## Autherisation
+## Authorisation
 
 There is a simple authorisation built in. 
 The authorisation is a simple check for an token. 
